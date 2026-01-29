@@ -1,17 +1,32 @@
 import util.DBConnection;
 
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class Main {
-    public static void main(String[] args) throws SQLException {
-        Connection connection = DBConnection.getConnection();
-        if(connection != null){
-            System.out.println("Connected to the database");
+@WebServlet(name = "Main", value = "/home")
+public class Main  extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String test = "";
+        try {
+            Connection conn = DBConnection.getConnection();
+            if (conn != null) {
+                test = "ok";
+            }
+            else  {
+                test = "đéo ok";
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        else {
-            System.out.println("Connection Failed");
-        }
+        request.setAttribute("test", test);
+        request.getRequestDispatcher("/index.jsp").forward(request, response);
     }
 }
