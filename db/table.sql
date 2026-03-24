@@ -1,239 +1,153 @@
-CREATE TABLE IF NOT EXISTS public.actors
+-- ==============================================================================
+-- 1. CÁC BẢNG ĐỘC LẬP (Không phụ thuộc khóa ngoại, tạo trước)
+-- ==============================================================================
+
+CREATE TABLE users
 (
-    actor_id serial NOT NULL,
-    actor_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    avatar_url character varying(255) COLLATE pg_catalog."default",
-    bio text COLLATE pg_catalog."default",
-    CONSTRAINT actors_pkey PRIMARY KEY (actor_id)
+    user_id   SERIAL PRIMARY KEY,
+    username  VARCHAR(50)                 NOT NULL UNIQUE,
+    password  VARCHAR(100)                NOT NULL,
+    full_name VARCHAR(100),
+    email     VARCHAR(100)                NOT NULL UNIQUE,
+    role      VARCHAR(100) DEFAULT 'USER' NOT NULL CHECK (role IN ('ADMIN', 'USER'))
 );
 
-CREATE TABLE IF NOT EXISTS public.articles
+CREATE TABLE theatre
 (
-    article_id serial NOT NULL,
-    title character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    summary text COLLATE pg_catalog."default" NOT NULL,
-    content text COLLATE pg_catalog."default" NOT NULL,
-    image_url character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    is_active boolean DEFAULT true,
-    CONSTRAINT articles_pkey PRIMARY KEY (article_id)
+    theatre_id     SERIAL PRIMARY KEY,
+    theatre_name   VARCHAR(100) NOT NULL,
+    location       VARCHAR(100) NOT NULL,
+    preview_url    VARCHAR(255) NOT NULL,
+    info           TEXT,
+    theatre_status VARCHAR(100) NOT NULL CHECK (theatre_status IN ('MAINTENANCE', 'OPEN', 'CLOSE')),
+    city           VARCHAR(50),
+    coordinates    VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS public.bookings
+CREATE TABLE series
 (
-    booking_id serial NOT NULL,
-    user_id integer,
-    booking_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    total_payment numeric(10, 2) DEFAULT 0,
-    payment_status character varying(50) COLLATE pg_catalog."default" NOT NULL,
-    payment_method character varying(50) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT bookings_pkey PRIMARY KEY (booking_id)
+    series_id   SERIAL PRIMARY KEY,
+    series_name VARCHAR(255) NOT NULL,
+    description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.directors
+CREATE TABLE genres
 (
-    director_id serial NOT NULL,
-    director_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    avatar_url character varying(255) COLLATE pg_catalog."default",
-    bio text COLLATE pg_catalog."default",
-    CONSTRAINT directors_pkey PRIMARY KEY (director_id)
+    genre_id   SERIAL PRIMARY KEY,
+    genre_name VARCHAR(100) NOT NULL UNIQUE
 );
 
-CREATE TABLE IF NOT EXISTS public.genres
+CREATE TABLE directors
 (
-    genre_id serial NOT NULL,
-    genre_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT genres_pkey PRIMARY KEY (genre_id),
-    CONSTRAINT genres_genre_name_key UNIQUE (genre_name)
+    director_id   SERIAL PRIMARY KEY,
+    director_name VARCHAR(255) NOT NULL,
+    avatar_url    VARCHAR(255),
+    bio           TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.movie_actor
+CREATE TABLE actors
 (
-    movie_id integer NOT NULL,
-    actor_id integer NOT NULL,
-    character_name character varying(255) COLLATE pg_catalog."default",
-    CONSTRAINT movie_actor_pkey PRIMARY KEY (movie_id, actor_id)
+    actor_id   SERIAL PRIMARY KEY,
+    actor_name VARCHAR(255) NOT NULL,
+    avatar_url VARCHAR(255),
+    bio        TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.movie_director
+CREATE TABLE articles
 (
-    movie_id integer NOT NULL,
-    director_id integer NOT NULL,
-    CONSTRAINT movie_director_pkey PRIMARY KEY (movie_id, director_id)
+    article_id SERIAL PRIMARY KEY,
+    title      VARCHAR(255) NOT NULL,
+    summary    TEXT         NOT NULL,
+    content    TEXT         NOT NULL,
+    image_url  VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active  BOOLEAN   DEFAULT true
 );
 
-CREATE TABLE IF NOT EXISTS public.movie_genre
+
+-- ==============================================================================
+-- 2. CÁC BẢNG CẤP 1 (Phụ thuộc vào các bảng trên)
+-- ==============================================================================
+
+CREATE TABLE room
 (
-    movie_id integer NOT NULL,
-    genre_id integer NOT NULL,
-    CONSTRAINT movie_genre_pkey PRIMARY KEY (movie_id, genre_id)
+    room_id     SERIAL PRIMARY KEY,
+    room_name   VARCHAR(100)                     NOT NULL,
+    room_type   VARCHAR(100)                     NOT NULL CHECK (room_type IN ('NORMAL', 'VIP', 'PRO MAX')),
+    capacity    INT                              NOT NULL,
+    theatre_id  INT REFERENCES theatre (theatre_id),
+    room_status VARCHAR(100) DEFAULT 'AVAILABLE' NOT NULL CHECK (room_status IN ('MAINTENANCE', 'AVAILABLE', 'UNAVAILABLE'))
 );
 
-CREATE TABLE IF NOT EXISTS public.movies
+CREATE TABLE movies
 (
-    movie_id serial NOT NULL,
-    title character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    description text COLLATE pg_catalog."default",
-    poster_url character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    trailer_url character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    duration integer NOT NULL,
-    release_date date,
-    movie_status character varying(100) COLLATE pg_catalog."default" NOT NULL DEFAULT 'UNAVAILABLE'::character varying,
-    series_id integer,
-    CONSTRAINT movies_pkey PRIMARY KEY (movie_id)
+    movie_id     SERIAL PRIMARY KEY,
+    title        VARCHAR(255)                       NOT NULL,
+    description  TEXT,
+    poster_url   VARCHAR(255)                       NOT NULL,
+    trailer_url  VARCHAR(255)                       NOT NULL,
+    duration     INT                                NOT NULL,
+    release_date DATE,
+    movie_status VARCHAR(100) DEFAULT 'UNAVAILABLE' NOT NULL CHECK (movie_status IN ('AVAILABLE', 'UPCOMING', 'UNAVAILABLE')),
+    series_id    INT REFERENCES series (series_id)
 );
 
-CREATE TABLE IF NOT EXISTS public.room
+CREATE TABLE bookings
 (
-    room_id serial NOT NULL,
-    room_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    room_type character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    capacity integer NOT NULL,
-    theatre_id integer,
-    room_status character varying(100) COLLATE pg_catalog."default" NOT NULL DEFAULT 'AVAILABLE'::character varying,
-    CONSTRAINT room_pkey PRIMARY KEY (room_id)
+    booking_id     SERIAL PRIMARY KEY,
+    user_id        INT REFERENCES users (user_id),
+    booking_date   TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    total_payment  NUMERIC(10, 2) DEFAULT 0,
+    payment_status VARCHAR(50) NOT NULL CHECK (payment_status IN ('PENDING', 'CANCEL', 'COMPLETED')),
+    payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('E_WALLET', 'TRANSFER', 'CARD'))
 );
 
-CREATE TABLE IF NOT EXISTS public.series
+
+-- ==============================================================================
+-- 3. CÁC BẢNG CẤP 2 (Bảng trung gian N-N và Lịch chiếu)
+-- ==============================================================================
+
+CREATE TABLE movie_genre
 (
-    series_id serial NOT NULL,
-    series_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    description text COLLATE pg_catalog."default",
-    CONSTRAINT series_pkey PRIMARY KEY (series_id)
+    movie_id INT REFERENCES movies (movie_id) ON DELETE CASCADE,
+    genre_id INT REFERENCES genres (genre_id) ON DELETE CASCADE,
+    PRIMARY KEY (movie_id, genre_id)
 );
 
-CREATE TABLE IF NOT EXISTS public.showtime
+CREATE TABLE movie_director
 (
-    showtime_id serial NOT NULL,
-    movie_id integer,
-    room_id integer,
-    start_at timestamp without time zone NOT NULL,
-    price numeric(10, 2) NOT NULL,
-    CONSTRAINT showtime_pkey PRIMARY KEY (showtime_id)
+    movie_id    INT REFERENCES movies (movie_id) ON DELETE CASCADE,
+    director_id INT REFERENCES directors (director_id) ON DELETE CASCADE,
+    PRIMARY KEY (movie_id, director_id)
 );
 
-CREATE TABLE IF NOT EXISTS public.theatre
+CREATE TABLE movie_actor
 (
-    theatre_id serial NOT NULL,
-    theatre_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    location character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    preview_url character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    info text COLLATE pg_catalog."default",
-    theatre_status character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    city character varying(50) COLLATE pg_catalog."default",
-    coordinates character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT theatre_pkey PRIMARY KEY (theatre_id)
+    movie_id       INT REFERENCES movies (movie_id) ON DELETE CASCADE,
+    actor_id       INT REFERENCES actors (actor_id) ON DELETE CASCADE,
+    character_name VARCHAR(255),
+    PRIMARY KEY (movie_id, actor_id)
 );
 
-CREATE TABLE IF NOT EXISTS public.tickets
+CREATE TABLE showtime
 (
-    ticket_id serial NOT NULL,
-    booking_id integer,
-    showtime_id integer,
-    seat_number character varying(10) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT tickets_pkey PRIMARY KEY (ticket_id),
-    CONSTRAINT tickets_showtime_id_seat_number_key UNIQUE (showtime_id, seat_number)
+    showtime_id SERIAL PRIMARY KEY,
+    movie_id    INT REFERENCES movies (movie_id),
+    room_id     INT REFERENCES room (room_id),
+    start_at    TIMESTAMP      NOT NULL,
+    price       NUMERIC(10, 2) NOT NULL CHECK (price > 0)
 );
 
-CREATE TABLE IF NOT EXISTS public.users
+
+-- ==============================================================================
+-- 4. BẢNG CẤP 3 (Vé - Phụ thuộc vào Booking và Showtime)
+-- ==============================================================================
+
+CREATE TABLE tickets
 (
-    user_id serial NOT NULL,
-    username character varying(50) COLLATE pg_catalog."default" NOT NULL,
-    password character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    full_name character varying(100) COLLATE pg_catalog."default",
-    email character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    role character varying(100) COLLATE pg_catalog."default" NOT NULL DEFAULT 'USER'::character varying,
-    CONSTRAINT users_pkey PRIMARY KEY (user_id),
-    CONSTRAINT unique_username UNIQUE (username),
-    CONSTRAINT users_email_key UNIQUE (email)
+    ticket_id   SERIAL PRIMARY KEY,
+    booking_id  INT REFERENCES bookings (booking_id),
+    showtime_id INT REFERENCES showtime (showtime_id),
+    seat_number VARCHAR(10) NOT NULL,
+    UNIQUE (showtime_id, seat_number)
 );
-
-ALTER TABLE IF EXISTS public.bookings
-    ADD CONSTRAINT bookings_user_id_fkey FOREIGN KEY (user_id)
-        REFERENCES public.users (user_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION;
-
-
-ALTER TABLE IF EXISTS public.movie_actor
-    ADD CONSTRAINT movie_actor_actor_id_fkey FOREIGN KEY (actor_id)
-        REFERENCES public.actors (actor_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE;
-
-
-ALTER TABLE IF EXISTS public.movie_actor
-    ADD CONSTRAINT movie_actor_movie_id_fkey FOREIGN KEY (movie_id)
-        REFERENCES public.movies (movie_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE;
-
-
-ALTER TABLE IF EXISTS public.movie_director
-    ADD CONSTRAINT movie_director_director_id_fkey FOREIGN KEY (director_id)
-        REFERENCES public.directors (director_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE;
-
-
-ALTER TABLE IF EXISTS public.movie_director
-    ADD CONSTRAINT movie_director_movie_id_fkey FOREIGN KEY (movie_id)
-        REFERENCES public.movies (movie_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE;
-
-
-ALTER TABLE IF EXISTS public.movie_genre
-    ADD CONSTRAINT movie_genre_genre_id_fkey FOREIGN KEY (genre_id)
-        REFERENCES public.genres (genre_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE;
-
-
-ALTER TABLE IF EXISTS public.movie_genre
-    ADD CONSTRAINT movie_genre_movie_id_fkey FOREIGN KEY (movie_id)
-        REFERENCES public.movies (movie_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE;
-
-
-ALTER TABLE IF EXISTS public.movies
-    ADD CONSTRAINT movies_series_id_fkey FOREIGN KEY (series_id)
-        REFERENCES public.series (series_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION;
-
-
-ALTER TABLE IF EXISTS public.room
-    ADD CONSTRAINT room_theatre_id_fkey FOREIGN KEY (theatre_id)
-        REFERENCES public.theatre (theatre_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION;
-
-
-ALTER TABLE IF EXISTS public.showtime
-    ADD CONSTRAINT showtime_movie_id_fkey FOREIGN KEY (movie_id)
-        REFERENCES public.movies (movie_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION;
-
-
-ALTER TABLE IF EXISTS public.showtime
-    ADD CONSTRAINT showtime_room_id_fkey FOREIGN KEY (room_id)
-        REFERENCES public.room (room_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION;
-
-
-ALTER TABLE IF EXISTS public.tickets
-    ADD CONSTRAINT tickets_booking_id_fkey FOREIGN KEY (booking_id)
-        REFERENCES public.bookings (booking_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION;
-
-
-ALTER TABLE IF EXISTS public.tickets
-    ADD CONSTRAINT tickets_showtime_id_fkey FOREIGN KEY (showtime_id)
-        REFERENCES public.showtime (showtime_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION;
