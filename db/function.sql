@@ -260,3 +260,75 @@ begin
 end;
 $$;
 
+create or replace function get_showtime_for_movie_by_date(in f_date date, in f_movie_id int, in f_city varchar)
+    returns table(
+                     showtime_id int,
+                     start_at timestamp,
+                     price numeric,
+                     room_name varchar,
+                     room_type varchar,
+                     theatre_name varchar,
+                     room_id int,
+                     theatre_id int,
+                     movie_id int,
+                     seat_remain bigint
+                 )
+    language plpgsql
+as $$
+begin
+    return query
+        select
+            s.showtime_id,
+            s.start_at,
+            s.price,
+            r.room_name,
+            r.room_type,
+            t.theatre_name,
+            r.room_id,
+            t.theatre_id,
+            s.movie_id,
+            (r.capacity - count(tk.ticket_id)) as seat_remain
+        from showtime as s
+                 join room r on r.room_id = s.room_id
+                 join theatre t on t.theatre_id = r.theatre_id
+                 left join tickets tk on tk.showtime_id = s.showtime_id
+        where s.movie_id = f_movie_id
+          and t.city = f_city
+          and date(s.start_at) = f_date
+          and s.start_at > current_timestamp
+        group by
+            s.showtime_id, s.start_at, s.price, r.room_name, r.room_type,
+            t.theatre_name, r.room_id, t.theatre_id, s.movie_id, r.capacity
+        order by t.theatre_name, s.start_at asc;
+end;
+$$;
+
+create or replace function get_room_capacity(in f_showtime_id int)
+    returns table(room_name varchar,
+                  capacity int,
+                  standard_price numeric)
+    language plpgsql
+as $$
+begin
+    return query
+        select r.room_name, r.capacity, s.price
+        from showtime as s
+                 join room r on r.room_id = s.room_id
+        where s.showtime_id = f_showtime_id;
+end;
+$$;
+
+create or replace function get_unavailable_seat(in f_showtime_id int)
+    returns table(seat_number varchar)
+    language plpgsql
+as $$
+begin
+    return query
+        select t.seat_number
+        from tickets as t
+                 join bookings b on t.booking_id = b.booking_id
+        where t.showtime_id = f_showtime_id
+          and b.payment_status != 'CANCEL';
+end;
+$$;
+

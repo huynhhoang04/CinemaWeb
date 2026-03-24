@@ -157,11 +157,20 @@
                                 <c:choose>
                                     <c:when test="${bk.paymentStatus == 'PENDING'}">
                                         <div style="color: #ffc107; font-weight: bold; margin-bottom: 10px;">Chờ thanh toán</div>
-                                        <a href="${pageContext.request.contextPath}/pay?id=${bk.bookingId}" style="display: inline-block; background: #28a745; color: white; padding: 6px 15px; text-decoration: none; border-radius: 4px; font-size: 0.9rem; margin-bottom: 5px;">Thanh toán ngay</a>
-                                        <form action="${pageContext.request.contextPath}/profile" method="post" style="display: inline;">
+                                        <form action="${pageContext.request.contextPath}/profile" method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="pay_now">
+                                            <input type="hidden" name="booking_id" value="${bk.bookingId}">
+                                            <button type="submit" style="background: #28a745; color: white; border: none; padding: 6px 15px; border-radius: 4px; font-size: 0.9rem; cursor: pointer; margin-bottom: 5px;">
+                                                Thanh toán ngay
+                                            </button>
+                                        </form>
+                                        <form action="${pageContext.request.contextPath}/profile" method="POST" style="display: inline;">
                                             <input type="hidden" name="action" value="cancel_booking">
                                             <input type="hidden" name="booking_id" value="${bk.bookingId}">
-                                            <button type="submit" onclick="return confirm('Hủy vé sẽ mất chỗ. Bạn chắc chắn chứ?');" style="background: transparent; color: #dc3545; border: 1px solid #dc3545; padding: 5px 15px; border-radius: 4px; cursor: pointer;">Hủy</button>
+                                            <button type="submit" onclick="return confirm('Hủy vé sẽ làm mất ghế bạn đã chọn. Bạn có chắc chắn không?');"
+                                                    style="background: transparent; color: #dc3545; border: 1px solid #dc3545; padding: 5px 15px; border-radius: 4px; cursor: pointer;">
+                                                Hủy
+                                            </button>
                                         </form>
                                     </c:when>
                                     <c:when test="${bk.paymentStatus == 'COMPLETED'}">

@@ -1,10 +1,14 @@
 package main.java.controller;
 
+import main.java.dao.BookingDAO;
 import main.java.dao.UserDAO;
+import main.java.dao.impl.BookingDAOImpl;
 import main.java.dao.impl.UserDAOImpl;
 import main.java.dto.BookingHistoryDTO;
 import main.java.model.entity.User;
+import main.java.service.BookingServices;
 import main.java.service.UserServices;
+import main.java.service.impl.BookingServicesImpl;
 import main.java.service.impl.UserServicesImpl;
 
 import javax.servlet.ServletException;
@@ -19,12 +23,15 @@ import java.util.List;
 @WebServlet(name = "Profile", value = "/profile")
 public class Profile extends HttpServlet {
     private UserServices userServices;
+    private BookingServices bookingServices;
 
     @Override
     public void init() {
         UserDAO userDAO = new UserDAOImpl();
+        BookingDAO bookingDAO = new BookingDAOImpl();
 
         this.userServices = new UserServicesImpl(userDAO);
+        this.bookingServices = new BookingServicesImpl(bookingDAO);
     }
 
     @Override
@@ -62,6 +69,24 @@ public class Profile extends HttpServlet {
                     request.setAttribute("error", result);
                 }
                 request.getRequestDispatcher("/views/user/profile.jsp").forward(request, response);
+            }
+
+            if(request.getParameter("action").equals("pay_now")){
+                int bookingId = Integer.parseInt(request.getParameter("booking_id"));
+                session.setAttribute("pending_booking_id", bookingId);
+                response.sendRedirect(request.getContextPath() + "/pay");
+            }
+
+            if(request.getParameter("action").equals("cancel_booking")){
+                int bookingId = Integer.parseInt(request.getParameter("booking_id"));
+                boolean isSuccess = bookingServices.updateBookingStatus(bookingId, currentUser.getUser_id(), "CANCEL");
+
+                if (isSuccess) {
+                    session.setAttribute("message", "Đã hủy vé thành công!");
+                } else {
+                    session.setAttribute("error", "Hủy vé thất bại, vui lòng thử lại.");
+                }
+                response.sendRedirect(request.getContextPath() + "/profile?");
             }
         }
         catch(Exception e){
